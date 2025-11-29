@@ -1,11 +1,15 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
 
 const app = new Hono()
 
 // Enable CORS
 app.use('/api/*', cors())
+
+// Serve static files
+app.use('/static/*', serveStatic({ root: './' }))
 
 // Mock data для демонстрации
 const mockVehicles = [
