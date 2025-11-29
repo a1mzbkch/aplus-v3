@@ -25,9 +25,12 @@ const mockVehicles = [
     latitude: 42.8746,
     longitude: 74.5698,
     photos: ['/static/images/howo.jpg', '/static/images/howo2.jpg'],
+    techPassportPhotos: ['/static/images/techpassport1-front.jpg', '/static/images/techpassport1-back.jpg'],
     maintenanceCostPerMonth: 25000,
     fuelConsumptionPerKm: 0.35,
-    avgKmPerMonth: 3000
+    avgKmPerMonth: 3000,
+    purchaseDate: '2020-03-15',
+    vin: 'LZYTBSMK8FA123456'
   },
   {
     id: 2,
@@ -45,9 +48,12 @@ const mockVehicles = [
     latitude: 42.8650,
     longitude: 74.5900,
     photos: ['/static/images/kamaz.jpg'],
+    techPassportPhotos: ['/static/images/techpassport2-front.jpg', '/static/images/techpassport2-back.jpg'],
     maintenanceCostPerMonth: 22000,
     fuelConsumptionPerKm: 0.30,
-    avgKmPerMonth: 2500
+    avgKmPerMonth: 2500,
+    purchaseDate: '2018-06-20',
+    vin: 'X5КАМАЗ65206789012'
   },
   {
     id: 3,
@@ -65,9 +71,12 @@ const mockVehicles = [
     latitude: 42.8820,
     longitude: 74.6100,
     photos: ['/static/images/cat.jpg'],
+    techPassportPhotos: ['/static/images/techpassport3-front.jpg', '/static/images/techpassport3-back.jpg'],
     maintenanceCostPerMonth: 30000,
     fuelConsumptionPerKm: 0.40,
-    avgKmPerMonth: 800
+    avgKmPerMonth: 800,
+    purchaseDate: '2019-08-10',
+    vin: 'CAT320D2KLM456789'
   }
 ]
 
@@ -194,13 +203,115 @@ const mockFuelings = [
 ]
 
 const mockRepairs = [
+  // HOWO 165 - История с покупки (2020-03-15)
   {
     id: 1,
     vehicleId: 1,
     vehicleName: 'HOWO 165',
     vehiclePlate: 'А123ВС',
     driver: 'Иванов И.И.',
-    description: 'Замена масла и фильтров',
+    description: 'Первое ТО после покупки',
+    parts: [
+      { name: 'Масло моторное', quantity: 20, unit: 'л', price: 150, total: 3000 },
+      { name: 'Фильтр масляный', quantity: 1, unit: 'шт', price: 800, total: 800 },
+      { name: 'Фильтр воздушный', quantity: 1, unit: 'шт', price: 700, total: 700 }
+    ],
+    partsCost: 4500,
+    laborCost: 2000,
+    totalCost: 6500,
+    date: '2020-06-15',
+    photos: ['/static/images/repair1.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 2,
+    vehicleId: 1,
+    vehicleName: 'HOWO 165',
+    vehiclePlate: 'А123ВС',
+    driver: 'Иванов И.И.',
+    description: 'Замена передних тормозных колодок',
+    parts: [
+      { name: 'Колодки тормозные передние', quantity: 1, unit: 'компл', price: 4500, total: 4500 },
+      { name: 'Жидкость тормозная', quantity: 2, unit: 'л', price: 350, total: 700 }
+    ],
+    partsCost: 5200,
+    laborCost: 3000,
+    totalCost: 8200,
+    date: '2021-03-20',
+    photos: ['/static/images/repair1.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 3,
+    vehicleId: 1,
+    vehicleName: 'HOWO 165',
+    vehiclePlate: 'А123ВС',
+    driver: 'Иванов И.И.',
+    description: 'Ремонт двигателя - замена поршневой группы',
+    parts: [
+      { name: 'Поршни комплект', quantity: 1, unit: 'компл', price: 25000, total: 25000 },
+      { name: 'Кольца поршневые', quantity: 1, unit: 'компл', price: 8000, total: 8000 },
+      { name: 'Прокладки двигателя', quantity: 1, unit: 'компл', price: 3500, total: 3500 },
+      { name: 'Масло моторное', quantity: 25, unit: 'л', price: 150, total: 3750 }
+    ],
+    partsCost: 40250,
+    laborCost: 15000,
+    totalCost: 55250,
+    date: '2022-08-10',
+    photos: ['/static/images/repair1.jpg', '/static/images/repair2.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 4,
+    vehicleId: 1,
+    vehicleName: 'HOWO 165',
+    vehiclePlate: 'А123ВС',
+    driver: 'Иванов И.И.',
+    description: 'ТО - замена масла, фильтров и диагностика',
+    parts: [
+      { name: 'Масло моторное', quantity: 20, unit: 'л', price: 150, total: 3000 },
+      { name: 'Фильтр масляный', quantity: 1, unit: 'шт', price: 800, total: 800 },
+      { name: 'Фильтр воздушный', quantity: 1, unit: 'шт', price: 700, total: 700 },
+      { name: 'Фильтр топливный', quantity: 1, unit: 'шт', price: 1200, total: 1200 }
+    ],
+    partsCost: 5700,
+    laborCost: 2500,
+    totalCost: 8200,
+    date: '2023-11-05',
+    photos: ['/static/images/repair1.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 5,
+    vehicleId: 1,
+    vehicleName: 'HOWO 165',
+    vehiclePlate: 'А123ВС',
+    driver: 'Иванов И.И.',
+    description: 'Замена рулевой рейки и сход-развал',
+    parts: [
+      { name: 'Рулевая рейка', quantity: 1, unit: 'шт', price: 18000, total: 18000 },
+      { name: 'Рулевые наконечники', quantity: 2, unit: 'шт', price: 1500, total: 3000 },
+      { name: 'Сайлентблоки рычагов', quantity: 4, unit: 'шт', price: 800, total: 3200 }
+    ],
+    partsCost: 24200,
+    laborCost: 8000,
+    totalCost: 32200,
+    date: '2024-06-15',
+    photos: ['/static/images/repair1.jpg', '/static/images/repair2.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 6,
+    vehicleId: 1,
+    vehicleName: 'HOWO 165',
+    vehiclePlate: 'А123ВС',
+    driver: 'Иванов И.И.',
+    description: 'Плановое ТО и замена масла',
     parts: [
       { name: 'Масло моторное', quantity: 20, unit: 'л', price: 150, total: 3000 },
       { name: 'Фильтр масляный', quantity: 1, unit: 'шт', price: 800, total: 800 },
@@ -214,27 +325,70 @@ const mockRepairs = [
     status: 'completed',
     mechanic: 'Сергеев М.М.'
   },
+
+  // Камаз 6520 - История с покупки (2018-06-20)
   {
-    id: 2,
-    vehicleId: 3,
-    vehicleName: 'Caterpillar 320',
-    vehiclePlate: 'Е789КМ',
-    driver: 'Сидоров С.С.',
-    description: 'Ремонт гидравлики',
+    id: 7,
+    vehicleId: 2,
+    vehicleName: 'Камаз 6520',
+    vehiclePlate: 'В456СЕ',
+    driver: 'Петров П.П.',
+    description: 'Первое ТО после покупки',
     parts: [
-      { name: 'Шланг гидравлический', quantity: 2, unit: 'шт', price: 3500, total: 7000 },
-      { name: 'Уплотнители комплект', quantity: 1, unit: 'компл', price: 1500, total: 1500 }
+      { name: 'Масло моторное', quantity: 22, unit: 'л', price: 140, total: 3080 },
+      { name: 'Фильтры комплект', quantity: 1, unit: 'компл', price: 2200, total: 2200 }
     ],
-    partsCost: 8500,
-    laborCost: 5000,
-    totalCost: 13500,
-    date: '2025-11-26',
-    photos: ['/static/images/repair3.jpg'],
-    status: 'in_progress',
+    partsCost: 5280,
+    laborCost: 2000,
+    totalCost: 7280,
+    date: '2018-09-20',
+    photos: ['/static/images/repair4.jpg'],
+    status: 'completed',
     mechanic: 'Сергеев М.М.'
   },
   {
-    id: 3,
+    id: 8,
+    vehicleId: 2,
+    vehicleName: 'Камаз 6520',
+    vehiclePlate: 'В456СЕ',
+    driver: 'Петров П.П.',
+    description: 'Ремонт КПП - замена сцепления',
+    parts: [
+      { name: 'Сцепление комплект', quantity: 1, unit: 'компл', price: 22000, total: 22000 },
+      { name: 'Выжимной подшипник', quantity: 1, unit: 'шт', price: 3500, total: 3500 },
+      { name: 'Масло трансмиссионное', quantity: 8, unit: 'л', price: 200, total: 1600 }
+    ],
+    partsCost: 27100,
+    laborCost: 12000,
+    totalCost: 39100,
+    date: '2020-04-15',
+    photos: ['/static/images/repair4.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 9,
+    vehicleId: 2,
+    vehicleName: 'Камаз 6520',
+    vehiclePlate: 'В456СЕ',
+    driver: 'Петров П.П.',
+    description: 'Капитальный ремонт двигателя',
+    parts: [
+      { name: 'Поршневая группа', quantity: 1, unit: 'компл', price: 35000, total: 35000 },
+      { name: 'Вкладыши коленвала', quantity: 1, unit: 'компл', price: 8500, total: 8500 },
+      { name: 'Прокладки и сальники', quantity: 1, unit: 'компл', price: 5000, total: 5000 },
+      { name: 'Масло моторное', quantity: 30, unit: 'л', price: 140, total: 4200 }
+    ],
+    partsCost: 52700,
+    laborCost: 25000,
+    totalCost: 77700,
+    date: '2022-01-25',
+    photos: ['/static/images/repair4.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 10,
     vehicleId: 2,
     vehicleName: 'Камаз 6520',
     vehiclePlate: 'В456СЕ',
@@ -250,6 +404,85 @@ const mockRepairs = [
     date: '2025-11-22',
     photos: ['/static/images/repair4.jpg'],
     status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+
+  // Caterpillar 320 - История с покупки (2019-08-10)
+  {
+    id: 11,
+    vehicleId: 3,
+    vehicleName: 'Caterpillar 320',
+    vehiclePlate: 'Е789КМ',
+    driver: 'Сидоров С.С.',
+    description: 'Первое ТО после покупки',
+    parts: [
+      { name: 'Масло гидравлическое', quantity: 150, unit: 'л', price: 180, total: 27000 },
+      { name: 'Фильтры гидравлики комплект', quantity: 1, unit: 'компл', price: 8500, total: 8500 }
+    ],
+    partsCost: 35500,
+    laborCost: 5000,
+    totalCost: 40500,
+    date: '2020-02-10',
+    photos: ['/static/images/repair3.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 12,
+    vehicleId: 3,
+    vehicleName: 'Caterpillar 320',
+    vehiclePlate: 'Е789КМ',
+    driver: 'Сидоров С.С.',
+    description: 'Замена гусениц',
+    parts: [
+      { name: 'Гусеница левая', quantity: 1, unit: 'шт', price: 120000, total: 120000 },
+      { name: 'Гусеница правая', quantity: 1, unit: 'шт', price: 120000, total: 120000 }
+    ],
+    partsCost: 240000,
+    laborCost: 15000,
+    totalCost: 255000,
+    date: '2021-09-15',
+    photos: ['/static/images/repair3.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 13,
+    vehicleId: 3,
+    vehicleName: 'Caterpillar 320',
+    vehiclePlate: 'Е789КМ',
+    driver: 'Сидоров С.С.',
+    description: 'Ремонт гидронасоса',
+    parts: [
+      { name: 'Гидронасос основной', quantity: 1, unit: 'шт', price: 85000, total: 85000 },
+      { name: 'Уплотнители комплект', quantity: 1, unit: 'компл', price: 3500, total: 3500 },
+      { name: 'Масло гидравлическое', quantity: 20, unit: 'л', price: 180, total: 3600 }
+    ],
+    partsCost: 92100,
+    laborCost: 18000,
+    totalCost: 110100,
+    date: '2023-05-20',
+    photos: ['/static/images/repair3.jpg'],
+    status: 'completed',
+    mechanic: 'Сергеев М.М.'
+  },
+  {
+    id: 14,
+    vehicleId: 3,
+    vehicleName: 'Caterpillar 320',
+    vehiclePlate: 'Е789КМ',
+    driver: 'Сидоров С.С.',
+    description: 'Ремонт гидравлики',
+    parts: [
+      { name: 'Шланг гидравлический', quantity: 2, unit: 'шт', price: 3500, total: 7000 },
+      { name: 'Уплотнители комплект', quantity: 1, unit: 'компл', price: 1500, total: 1500 }
+    ],
+    partsCost: 8500,
+    laborCost: 5000,
+    totalCost: 13500,
+    date: '2025-11-26',
+    photos: ['/static/images/repair3.jpg'],
+    status: 'in_progress',
     mechanic: 'Сергеев М.М.'
   }
 ]
@@ -584,6 +817,76 @@ app.get('/api/vehicles/:id/history', (c) => {
     vehicle,
     fuelings,
     repairs
+  })
+})
+
+app.get('/api/vehicles/:id/expenses', (c) => {
+  const id = parseInt(c.req.param('id'))
+  const vehicle = mockVehicles.find(v => v.id === id)
+  if (!vehicle) {
+    return c.json({ error: 'Vehicle not found' }, 404)
+  }
+  
+  // Создаем дневную историю расходов
+  const expenses = []
+  const fuelings = mockFuelings.filter(f => f.vehicleId === id)
+  const repairs = mockRepairs.filter(r => r.vehicleId === id)
+  
+  // Группируем по дням
+  const dailyExpenses = {}
+  
+  fuelings.forEach(f => {
+    const date = f.date.split(' ')[0]
+    if (!dailyExpenses[date]) {
+      dailyExpenses[date] = { date, fuel: 0, fuelCost: 0, oil: 0, oilCost: 0, parts: 0, partsCost: 0, labor: 0, total: 0, items: [] }
+    }
+    dailyExpenses[date].fuel += f.liters
+    dailyExpenses[date].fuelCost += f.amount
+    dailyExpenses[date].total += f.amount
+    dailyExpenses[date].items.push({ type: 'fuel', description: `Заправка ${f.liters}л`, amount: f.amount })
+  })
+  
+  repairs.forEach(r => {
+    const date = r.date
+    if (!dailyExpenses[date]) {
+      dailyExpenses[date] = { date, fuel: 0, fuelCost: 0, oil: 0, oilCost: 0, parts: 0, partsCost: 0, labor: 0, total: 0, items: [] }
+    }
+    
+    // Проверяем какие запчасти использовались
+    if (Array.isArray(r.parts)) {
+      r.parts.forEach(part => {
+        if (part.name.toLowerCase().includes('масло')) {
+          dailyExpenses[date].oil += part.quantity
+          dailyExpenses[date].oilCost += part.total
+        } else {
+          dailyExpenses[date].parts += part.quantity
+          dailyExpenses[date].partsCost += part.total
+        }
+      })
+    }
+    
+    dailyExpenses[date].labor += r.laborCost
+    dailyExpenses[date].total += r.totalCost
+    dailyExpenses[date].items.push({ type: 'repair', description: r.description, amount: r.totalCost })
+  })
+  
+  // Преобразуем в массив и сортируем по дате
+  const expensesList = Object.values(dailyExpenses).sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
+  })
+  
+  return c.json({
+    vehicle,
+    expenses: expensesList,
+    summary: {
+      totalFuel: expensesList.reduce((sum, e) => sum + e.fuel, 0),
+      totalFuelCost: expensesList.reduce((sum, e) => sum + e.fuelCost, 0),
+      totalOil: expensesList.reduce((sum, e) => sum + e.oil, 0),
+      totalOilCost: expensesList.reduce((sum, e) => sum + e.oilCost, 0),
+      totalPartsCost: expensesList.reduce((sum, e) => sum + e.partsCost, 0),
+      totalLaborCost: expensesList.reduce((sum, e) => sum + e.labor, 0),
+      grandTotal: expensesList.reduce((sum, e) => sum + e.total, 0)
+    }
   })
 })
 

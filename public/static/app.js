@@ -394,7 +394,7 @@ class App {
             </div>
             <div class="table-container">
               ${this.vehicles.slice(0, 5).map(vehicle => `
-                <div class="table-row" onclick="app.showVehicleDetails(${vehicle.id})" style="padding: 1rem; border-bottom: 1px solid #1e293b;">
+                <div class="table-row" onclick="app.navigateTo('vehicle-detail', ${vehicle.id})" style="padding: 1rem; border-bottom: 1px solid #1e293b;">
                   <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                       <i class="fas fa-truck"></i>
@@ -447,14 +447,33 @@ class App {
   }
 
   renderVehicles() {
+    // Группируем технику по типам
+    const vehiclesByType = {}
+    this.vehicles.forEach(vehicle => {
+      if (!vehiclesByType[vehicle.type]) {
+        vehiclesByType[vehicle.type] = []
+      }
+      vehiclesByType[vehicle.type].push(vehicle)
+    })
+    
     return `
       <div>
         <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Техника</h1>
         <p style="color: #64748b; margin-bottom: 2rem;">Управление транспортными средствами</p>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
-          ${this.vehicles.map(vehicle => `
-            <div class="card" style="cursor: pointer;" onclick="app.showVehicleDetails(${vehicle.id})">
+        ${Object.keys(vehiclesByType).map(type => `
+          <div style="margin-bottom: 3rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+              <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-${type === 'Самосвал' ? 'truck' : type === 'Экскаватор' ? 'hard-hat' : 'truck-moving'}"></i>
+              </div>
+              ${type}
+              <span style="font-size: 1rem; color: #64748b; font-weight: 400;">(${vehiclesByType[type].length})</span>
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+              ${vehiclesByType[type].map(vehicle => `
+                <div class="card" style="cursor: pointer;" onclick="app.navigateTo('vehicle-detail', ${vehicle.id})">
               <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                 <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
                   <i class="fas fa-truck"></i>
@@ -502,48 +521,130 @@ class App {
                   </div>
                 </div>
               </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `
-  }
-
-  showVehicleDetails(id) {
-    const vehicle = this.vehicles.find(v => v.id === id)
-    if (!vehicle) return
-    
-    const vehicleFuelings = this.fuelings.filter(f => f.vehicleId === id)
-    const vehicleRepairs = this.repairs.filter(r => r.vehicleId === id)
-    const driver = this.drivers.find(d => d.id === vehicle.driverId)
-    
-    const modal = document.createElement('div')
-    modal.className = 'modal-overlay'
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove()
-    }
-    
-    modal.innerHTML = `
-      <div class="modal" style="max-width: 1200px;">
-        <div class="modal-header">
-          <h2 class="modal-title">${vehicle.name} (${vehicle.plate})</h2>
-          <div class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-            <i class="fas fa-times"></i>
-          </div>
-        </div>
-        
-        <div class="modal-body">
-          <!-- Photos -->
-          <div style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Фотографии</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-              ${vehicle.photos.map(photo => `
-                <div style="aspect-ratio: 16/9; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                  <img src="${photo}" alt="Vehicle" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27150%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27150%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E'" />
                 </div>
               `).join('')}
             </div>
           </div>
+        `).join('')}
+      </div>
+    `
+  }
+
+  renderVehicleDetail(vehicleId) {
+    const vehicle = this.vehicles.find(v => v.id === vehicleId)
+    if (!vehicle) {
+      return `
+        <div style="text-align: center; padding: 4rem 2rem;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #fb923c; margin-bottom: 1rem;"></i>
+          <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Техника не найдена</h2>
+          <button class="btn btn-primary" onclick="app.navigateTo('vehicles')">
+            Вернуться к списку техники
+          </button>
+        </div>
+      `
+    }
+    
+    const vehicleFuelings = this.fuelings.filter(f => f.vehicleId === vehicleId)
+    const vehicleRepairs = this.repairs.filter(r => r.vehicleId === vehicleId)
+    const driver = this.drivers.find(d => d.id === vehicle.driverId)
+    
+    return `
+      <div>
+        <!-- Header with back button -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-secondary" onclick="app.navigateTo('vehicles')">
+            <i class="fas fa-arrow-left"></i>
+            Назад
+          </button>
+          <div style="flex: 1;">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">${vehicle.name} (${vehicle.plate})</h1>
+            <p style="color: #64748b;">${vehicle.type} • ${vehicle.location}</p>
+          </div>
+          <div class="badge badge-${vehicle.status === 'active' ? 'success' : 'warning'}" style="font-size: 1rem; padding: 0.5rem 1rem;">
+            <i class="fas fa-circle"></i>
+            ${vehicle.status === 'active' ? 'Активна' : 'Требует внимания'}
+          </div>
+        </div>
+        
+        <!-- Photos Section -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-images"></i>
+            Фотографии транспорта и документов
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            ${vehicle.photos.map((photo, index) => `
+              <div>
+                <h3 style="font-size: 0.875rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                  <i class="fas fa-truck"></i> Фото транспорта ${index + 1}
+                </h3>
+                <div style="aspect-ratio: 16/9; background: #1e293b; border-radius: 12px; overflow: hidden; border: 2px solid #334155;">
+                  <img src="${photo}" alt="Vehicle ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27%3E%3Crect fill=%27%231e293b%27 width=%27400%27 height=%27300%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2720%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
+                </div>
+              </div>
+            `).join('')}
+            <div>
+              <h3 style="font-size: 0.875rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-file-alt"></i> Тех. паспорт
+              </h3>
+              <div style="aspect-ratio: 16/9; background: #1e293b; border-radius: 12px; overflow: hidden; border: 2px solid #334155;">
+                <img src="${vehicle.techPassportPhoto || ''}" alt="Tech Passport" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27%3E%3Crect fill=%27%231e293b%27 width=%27400%27 height=%27300%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2716%27%3ETech Passport%3C/text%3E%3C/svg%3E'" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Vehicle Info -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-info-circle"></i>
+            Информация о технике
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Гос. номер</div>
+              <div style="font-size: 1.125rem; font-weight: 600; font-family: monospace;">${vehicle.plate}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">VIN номер</div>
+              <div style="font-size: 1.125rem; font-weight: 600; font-family: monospace;">${vehicle.vin || 'Н/Д'}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Тип</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${vehicle.type}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Дата покупки</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${vehicle.purchaseDate || 'Н/Д'}</div>
+            </div>
+            <div style="cursor: pointer;" onclick="app.navigateTo('driver-detail', ${vehicle.driverId})">
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                <i class="fas fa-user"></i> Водитель
+              </div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: #3b82f6;">
+                ${vehicle.driver} <i class="fas fa-external-link-alt" style="font-size: 0.75rem;"></i>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                <i class="fas fa-gas-pump"></i> Топливо
+              </div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: ${vehicle.fuelLevel < 30 ? '#ef4444' : '#22c55e'};">
+                ${vehicle.fuelLevel}%
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Пробег</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${vehicle.mileage.toLocaleString()} км</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">До ТО</div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: ${(vehicle.nextService - vehicle.mileage) < 1000 ? '#fb923c' : '#22c55e'};">
+                ${(vehicle.nextService - vehicle.mileage).toLocaleString()} км
+              </div>
+            </div>
+          </div>
+        </div>
           
           <!-- Map -->
           <div style="margin-bottom: 1.5rem;">
@@ -1750,6 +1851,294 @@ class App {
     `
   }
 
+  renderVehicleDetail(vehicleId) {
+    const vehicle = this.vehicles.find(v => v.id === parseInt(vehicleId))
+    if (!vehicle) {
+      return '<div class="card"><p>Техника не найдена</p></div>'
+    }
+
+    // Получаем историю заправок и ремонтов
+    const vehicleFuelings = this.fuelings.filter(f => f.vehicleId === vehicle.id)
+    const vehicleRepairs = this.repairs.filter(r => r.vehicleId === vehicle.id)
+    
+    // Получаем информацию о водителе
+    const driver = this.drivers.find(d => d.id === vehicle.driverId)
+    
+    return `
+      <div>
+        <!-- Навигация назад -->
+        <div style="margin-bottom: 2rem;">
+          <button class="btn btn-secondary" onclick="app.navigateTo('vehicles')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-arrow-left"></i>
+            Назад к технике
+          </button>
+        </div>
+
+        <!-- Заголовок -->
+        <div style="margin-bottom: 2rem;">
+          <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">${vehicle.name}</h1>
+          <p style="color: #64748b;">Гос. номер: ${vehicle.plate} • VIN: ${vehicle.vin}</p>
+        </div>
+
+        <!-- Основная информация -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <!-- Левая колонка: фото и информация -->
+          <div>
+            <!-- Фото транспорта -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h3 class="card-title" style="margin-bottom: 1rem;">
+                <i class="fas fa-images"></i>
+                Фото транспорта
+              </h3>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                ${vehicle.photos.map(photo => `
+                  <div style="aspect-ratio: 4/3; background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 8px; overflow: hidden; position: relative;">
+                    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                      <div style="text-align: center;">
+                        <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                        <div style="font-size: 0.875rem;">Фото техники</div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Фото техпаспорта -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h3 class="card-title" style="margin-bottom: 1rem;">
+                <i class="fas fa-id-card"></i>
+                Техпаспорт
+              </h3>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                ${vehicle.techPassportPhotos.map((photo, index) => `
+                  <div>
+                    <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem; font-weight: 600;">
+                      ${index === 0 ? 'Лицевая сторона' : 'Обратная сторона'}
+                    </div>
+                    <div style="aspect-ratio: 3/2; background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 8px; overflow: hidden; position: relative;">
+                      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <div style="text-align: center;">
+                          <i class="fas fa-file-alt" style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                          <div style="font-size: 0.875rem;">Техпаспорт</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Основная информация о технике -->
+            <div class="card">
+              <h3 class="card-title" style="margin-bottom: 1rem;">
+                <i class="fas fa-info-circle"></i>
+                Информация о технике
+              </h3>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Тип техники</div>
+                  <div style="font-weight: 600;">${vehicle.type}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Статус</div>
+                  <div class="badge ${vehicle.status === 'active' ? 'badge-success' : 'badge-warning'}">
+                    ${vehicle.status === 'active' ? 'Активна' : 'Требуется внимание'}
+                  </div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата покупки</div>
+                  <div style="font-weight: 600;">${vehicle.purchaseDate}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">VIN</div>
+                  <div style="font-weight: 600; font-family: monospace; font-size: 0.875rem;">${vehicle.vin}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Пробег</div>
+                  <div style="font-weight: 600;">${vehicle.mileage.toLocaleString()} км</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">До ТО</div>
+                  <div style="font-weight: 600;">${(vehicle.nextService - vehicle.mileage).toLocaleString()} км</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Водитель</div>
+                  <div style="font-weight: 600; color: #3b82f6; cursor: pointer;" onclick="app.navigateTo('driver-detail', ${vehicle.driverId})">
+                    ${vehicle.driver}
+                    <i class="fas fa-external-link-alt" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                  </div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Топливо</div>
+                  <div class="badge ${vehicle.fuelLevel < 30 ? 'badge-danger' : vehicle.fuelLevel < 50 ? 'badge-warning' : 'badge-success'}">
+                    <i class="fas fa-gas-pump"></i>
+                    ${vehicle.fuelLevel}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Правая колонка: карта -->
+          <div>
+            <div class="card" style="position: sticky; top: 1.5rem;">
+              <h3 class="card-title" style="margin-bottom: 1rem;">
+                <i class="fas fa-map-marker-alt"></i>
+                Местоположение
+              </h3>
+              <div style="margin-bottom: 1rem;">
+                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Текущая локация</div>
+                <div style="font-weight: 600;">${vehicle.location}</div>
+              </div>
+              <div id="vehicle-map-${vehicle.id}" style="height: 400px; border-radius: 8px; overflow: hidden; background: #1e293b;">
+                <!-- Карта будет инициализирована через Leaflet -->
+              </div>
+              <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; font-size: 0.875rem;">
+                <i class="fas fa-info-circle" style="color: #3b82f6; margin-right: 0.5rem;"></i>
+                <span style="color: #94a3b8;">Координаты: ${vehicle.latitude}, ${vehicle.longitude}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- История ремонтов -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 class="card-title">
+              <i class="fas fa-wrench"></i>
+              История ремонтов (${vehicleRepairs.length})
+            </h3>
+            <button class="btn btn-primary" onclick="app.exportVehicleRepairHistory(${vehicle.id})">
+              <i class="fas fa-file-excel"></i>
+              Экспорт в Excel
+            </button>
+          </div>
+          
+          <!-- Сортируемая таблица -->
+          <div class="table-container">
+            <table id="repairs-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid #1e293b;">
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #64748b; cursor: pointer;" onclick="app.sortRepairsTable('date')">
+                    Дата
+                    <i class="fas fa-sort" style="margin-left: 0.25rem; font-size: 0.75rem;"></i>
+                  </th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #64748b;">Описание работ</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #64748b;">Запчасти</th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; color: #64748b; cursor: pointer;" onclick="app.sortRepairsTable('partsCost')">
+                    Стоимость запчастей
+                    <i class="fas fa-sort" style="margin-left: 0.25rem; font-size: 0.75rem;"></i>
+                  </th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; color: #64748b; cursor: pointer;" onclick="app.sortRepairsTable('laborCost')">
+                    Работа
+                    <i class="fas fa-sort" style="margin-left: 0.25rem; font-size: 0.75rem;"></i>
+                  </th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; color: #64748b; cursor: pointer;" onclick="app.sortRepairsTable('totalCost')">
+                    Итого
+                    <i class="fas fa-sort" style="margin-left: 0.25rem; font-size: 0.75rem;"></i>
+                  </th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #64748b;">Статус</th>
+                </tr>
+              </thead>
+              <tbody id="repairs-tbody">
+                ${vehicleRepairs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(repair => `
+                  <tr style="border-bottom: 1px solid #1e293b;">
+                    <td style="padding: 0.75rem; white-space: nowrap;">${repair.date}</td>
+                    <td style="padding: 0.75rem;">
+                      <div style="font-weight: 600; margin-bottom: 0.25rem;">${repair.description}</div>
+                      <div style="font-size: 0.875rem; color: #64748b;">Механик: ${repair.mechanic}</div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                      <div style="font-size: 0.875rem;">
+                        ${repair.parts.map(part => `
+                          <div style="margin-bottom: 0.25rem;">
+                            • ${part.name}: ${part.quantity} ${part.unit}
+                          </div>
+                        `).join('')}
+                      </div>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-weight: 600; color: #3b82f6;">
+                      ${repair.partsCost.toLocaleString()} ₵
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-weight: 600; color: #fb923c;">
+                      ${repair.laborCost.toLocaleString()} ₵
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-weight: 700; color: #ef4444;">
+                      ${repair.totalCost.toLocaleString()} ₵
+                    </td>
+                    <td style="padding: 0.75rem; text-align: center;">
+                      <span class="badge ${repair.status === 'completed' ? 'badge-success' : 'badge-warning'}">
+                        ${repair.status === 'completed' ? 'Завершен' : 'В работе'}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Итоговая статистика -->
+          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #1e293b;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              <div>
+                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Всего ремонтов</div>
+                <div style="font-size: 1.5rem; font-weight: 700;">${vehicleRepairs.length}</div>
+              </div>
+              <div>
+                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Общие затраты на запчасти</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">
+                  ${vehicleRepairs.reduce((sum, r) => sum + r.partsCost, 0).toLocaleString()} ₵
+                </div>
+              </div>
+              <div>
+                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Общие затраты на работу</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #fb923c;">
+                  ${vehicleRepairs.reduce((sum, r) => sum + r.laborCost, 0).toLocaleString()} ₵
+                </div>
+              </div>
+              <div>
+                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Общая стоимость всех ремонтов</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">
+                  ${vehicleRepairs.reduce((sum, r) => sum + r.totalCost, 0).toLocaleString()} ₵
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  sortRepairsTable(column) {
+    // Эта функция будет реализована для сортировки таблицы
+    this.showToast('Функция сортировки будет добавлена', 'info')
+  }
+
+  exportVehicleRepairHistory(vehicleId) {
+    const vehicle = this.vehicles.find(v => v.id === vehicleId)
+    const vehicleRepairs = this.repairs.filter(r => r.vehicleId === vehicleId)
+    
+    // Создаем CSV данные
+    let csvContent = "data:text/csv;charset=utf-8,"
+    csvContent += "Дата,Описание,Запчасти,Стоимость запчастей,Работа,Итого,Статус,Механик\\n"
+    
+    vehicleRepairs.forEach(repair => {
+      const parts = repair.parts.map(p => \`\${p.name} (\${p.quantity} \${p.unit})\`).join('; ')
+      csvContent += \`\${repair.date},"\${repair.description}","\${parts}",\${repair.partsCost},\${repair.laborCost},\${repair.totalCost},\${repair.status},\${repair.mechanic}\\n\`
+    })
+    
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", \`\${vehicle.name}_\${vehicle.plate}_repairs.csv\`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    this.showToast(\`История ремонтов экспортирована: \${vehicle.name}\`, 'success')
+  }
+
   render() {
     const app = document.getElementById('app')
     
@@ -1776,6 +2165,8 @@ class App {
     let pageContent
     if (this.currentPage === 'driver-detail' && this.currentPageParam) {
       pageContent = this.renderDriverDetail(this.currentPageParam)
+    } else if (this.currentPage === 'vehicle-detail' && this.currentPageParam) {
+      pageContent = this.renderVehicleDetail(this.currentPageParam)
     } else {
       const pages = {
         dashboard: this.renderDashboard(),
@@ -1799,6 +2190,61 @@ class App {
         ${pageContent}
       </div>
     `
+    
+    // Инициализируем карту после рендеринга (если на странице vehicle-detail)
+    if (this.currentPage === 'vehicle-detail' && this.currentPageParam) {
+      setTimeout(() => this.initVehicleMap(this.currentPageParam), 100)
+    }
+  }
+  
+  initVehicleMap(vehicleId) {
+    const vehicle = this.vehicles.find(v => v.id === parseInt(vehicleId))
+    if (!vehicle) return
+    
+    const mapElement = document.getElementById(`vehicle-map-${vehicle.id}`)
+    if (!mapElement || !window.L) return
+    
+    // Создаем карту
+    const map = L.map(`vehicle-map-${vehicle.id}`).setView([vehicle.latitude, vehicle.longitude], 13)
+    
+    // Добавляем слой OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map)
+    
+    // Создаем кастомную иконку машины
+    const truckIcon = L.divIcon({
+      html: '<div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fas fa-truck"></i></div>',
+      className: 'custom-div-icon',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    })
+    
+    // Добавляем маркер с кастомной иконкой
+    L.marker([vehicle.latitude, vehicle.longitude], { icon: truckIcon })
+      .addTo(map)
+      .bindPopup(`
+        <div style="padding: 0.5rem; min-width: 200px;">
+          <div style="font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; color: #0f172a;">
+            ${vehicle.name}
+          </div>
+          <div style="color: #64748b; margin-bottom: 0.25rem;">
+            <strong>Гос. номер:</strong> ${vehicle.plate}
+          </div>
+          <div style="color: #64748b; margin-bottom: 0.25rem;">
+            <strong>Водитель:</strong> ${vehicle.driver}
+          </div>
+          <div style="color: #64748b; margin-bottom: 0.25rem;">
+            <strong>Локация:</strong> ${vehicle.location}
+          </div>
+          <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 4px; font-size: 0.875rem; color: #3b82f6;">
+            <i class="fas fa-map-marker-alt"></i>
+            ${vehicle.latitude}, ${vehicle.longitude}
+          </div>
+        </div>
+      `)
+      .openPopup()
   }
 }
 
