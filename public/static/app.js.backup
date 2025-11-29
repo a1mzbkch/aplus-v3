@@ -11,10 +11,6 @@ class App {
     this.fuelings = []
     this.repairs = []
     this.driverRequests = []
-    this.drivers = []
-    this.vehiclePurchaseRequests = []
-    this.partsRequests = []
-    this.maintenanceForecast = null
     this.currency = null
     
     this.init()
@@ -36,16 +32,12 @@ class App {
 
   async loadData() {
     try {
-      const [vehicles, fuelings, repairs, driverRequests, drivers, vehiclePurchaseRequests, partsRequests, notifications, maintenanceForecast, currency] = await Promise.all([
+      const [vehicles, fuelings, repairs, driverRequests, notifications, currency] = await Promise.all([
         axios.get('/api/vehicles'),
         axios.get('/api/fuelings'),
         axios.get('/api/repairs'),
         axios.get('/api/driver-requests'),
-        axios.get('/api/drivers'),
-        axios.get('/api/vehicle-purchase-requests'),
-        axios.get('/api/parts-requests'),
         axios.get('/api/notifications'),
-        axios.get('/api/maintenance-forecast'),
         axios.get('/api/currency')
       ])
       
@@ -53,11 +45,7 @@ class App {
       this.fuelings = fuelings.data
       this.repairs = repairs.data
       this.driverRequests = driverRequests.data
-      this.drivers = drivers.data
-      this.vehiclePurchaseRequests = vehiclePurchaseRequests.data
-      this.partsRequests = partsRequests.data
       this.notifications = notifications.data
-      this.maintenanceForecast = maintenanceForecast.data
       this.currency = currency.data
       
       this.render()
@@ -201,9 +189,7 @@ class App {
       { id: 'fuelings', icon: 'fa-gas-pump', label: 'Заправки' },
       { id: 'repairs', icon: 'fa-wrench', label: 'Ремонты' },
       { id: 'drivers', icon: 'fa-users', label: 'Водители' },
-      { id: 'vehicle-requests', icon: 'fa-shopping-cart', label: 'Заявки на технику' },
-      { id: 'parts-requests', icon: 'fa-cogs', label: 'Заявки на запчасти' },
-      { id: 'forecast', icon: 'fa-calculator', label: 'Прогноз расходов' },
+      { id: 'notifications', icon: 'fa-bell', label: 'Уведомления' },
       { id: 'reports', icon: 'fa-file-excel', label: 'Отчеты' }
     ]
 
@@ -221,12 +207,10 @@ class App {
             <a class="sidebar-link ${this.currentPage === item.id ? 'active' : ''}" onclick="app.navigateTo('${item.id}')">
               <i class="fas ${item.icon}"></i>
               <span>${item.label}</span>
+              ${item.id === 'notifications' && this.notifications.length > 0 ? 
+                `<span class="badge badge-danger" style="margin-left: auto;">${this.notifications.length}</span>` : ''}
               ${item.id === 'drivers' && this.driverRequests.length > 0 ? 
                 `<span class="badge badge-warning" style="margin-left: auto;">${this.driverRequests.length}</span>` : ''}
-              ${item.id === 'vehicle-requests' && this.vehiclePurchaseRequests.filter(r => r.status === 'pending').length > 0 ? 
-                `<span class="badge badge-warning" style="margin-left: auto;">${this.vehiclePurchaseRequests.filter(r => r.status === 'pending').length}</span>` : ''}
-              ${item.id === 'parts-requests' && this.partsRequests.filter(r => r.status === 'pending').length > 0 ? 
-                `<span class="badge badge-warning" style="margin-left: auto;">${this.partsRequests.filter(r => r.status === 'pending').length}</span>` : ''}
             </a>
           `).join('')}
         </div>
@@ -243,7 +227,14 @@ class App {
         </div>
         
         <div class="topbar-actions">
-          <div class="topbar-notification" onclick="app.toggleNotifications()" style="position: relative; cursor: pointer;">
+          ${this.currency ? `
+            <div style="display: flex; gap: 1rem; padding: 0.5rem 1rem; background: #1e293b; border-radius: 8px; font-size: 0.875rem;">
+              <span><i class="fas fa-dollar-sign text-primary"></i> ${this.currency.som_to_usd} сом</span>
+              <span><i class="fas fa-euro-sign text-primary"></i> ${this.currency.som_to_eur} сом</span>
+            </div>
+          ` : ''}
+          
+          <div class="topbar-notification" onclick="app.navigateTo('notifications')">
             <i class="fas fa-bell"></i>
             ${this.notifications.length > 0 ? '<div class="notification-badge"></div>' : ''}
           </div>
@@ -258,78 +249,6 @@ class App {
         </div>
       </div>
     `
-  }
-
-  toggleNotifications() {
-    // Remove existing dropdown if any
-    const existing = document.querySelector('.notifications-dropdown')
-    if (existing) {
-      existing.remove()
-      return
-    }
-    
-    const dropdown = document.createElement('div')
-    dropdown.className = 'notifications-dropdown'
-    dropdown.style.cssText = `
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      width: 380px;
-      max-height: 500px;
-      overflow-y: auto;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      z-index: 1000;
-      animation: slideDown 0.2s ease;
-    `
-    
-    dropdown.innerHTML = `
-      <div style="padding: 1rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="font-size: 1.125rem; font-weight: 600;">Уведомления</h3>
-        <span class="badge badge-danger">${this.notifications.length}</span>
-      </div>
-      <div>
-        ${this.notifications.length > 0 ? this.notifications.map(notif => `
-          <div style="padding: 1rem; border-bottom: 1px solid #334155; cursor: pointer;" onclick="app.handleNotificationClick(${notif.vehicleId || 'null'})">
-            <div style="display: flex; gap: 1rem;">
-              <div style="width: 40px; height: 40px; background: ${notif.priority === 'high' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 146, 60, 0.1)'}; color: ${notif.priority === 'high' ? '#ef4444' : '#fb923c'}; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i class="fas fa-${notif.type === 'fuel_low' ? 'gas-pump' : notif.type === 'service_due' ? 'wrench' : 'user-plus'}"></i>
-              </div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; margin-bottom: 0.25rem;">${notif.title}</div>
-                <div style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.5rem;">${notif.message}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">${notif.date}</div>
-              </div>
-            </div>
-          </div>
-        `).join('') : '<div style="padding: 2rem; text-align: center; color: #64748b;">Нет уведомлений</div>'}
-      </div>
-    `
-    
-    document.body.appendChild(dropdown)
-    
-    // Close on click outside
-    setTimeout(() => {
-      document.addEventListener('click', function closeDropdown(e) {
-        if (!dropdown.contains(e.target) && !e.target.closest('.topbar-notification')) {
-          dropdown.remove()
-          document.removeEventListener('click', closeDropdown)
-        }
-      })
-    }, 0)
-  }
-
-  handleNotificationClick(vehicleId) {
-    const dropdown = document.querySelector('.notifications-dropdown')
-    if (dropdown) dropdown.remove()
-    
-    if (vehicleId) {
-      this.showVehicleDetails(vehicleId)
-    } else {
-      this.navigateTo('drivers')
-    }
   }
 
   renderDashboard() {
@@ -513,7 +432,6 @@ class App {
     
     const vehicleFuelings = this.fuelings.filter(f => f.vehicleId === id)
     const vehicleRepairs = this.repairs.filter(r => r.vehicleId === id)
-    const driver = this.drivers.find(d => d.id === vehicle.driverId)
     
     const modal = document.createElement('div')
     modal.className = 'modal-overlay'
@@ -522,7 +440,7 @@ class App {
     }
     
     modal.innerHTML = `
-      <div class="modal" style="max-width: 1200px;">
+      <div class="modal">
         <div class="modal-header">
           <h2 class="modal-title">${vehicle.name} (${vehicle.plate})</h2>
           <div class="modal-close" onclick="this.closest('.modal-overlay').remove()">
@@ -543,17 +461,11 @@ class App {
             </div>
           </div>
           
-          <!-- Map -->
-          <div style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Местоположение</h3>
-            <div id="vehicle-map-${id}" style="height: 300px; border-radius: 8px; overflow: hidden; background: #1e293b;"></div>
-          </div>
-          
           <!-- Info -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="card" style="padding: 1rem; cursor: pointer;" onclick="app.showDriverDetails(${vehicle.driverId})">
+            <div class="card" style="padding: 1rem;">
               <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Водитель</div>
-              <div style="font-weight: 600; color: #3b82f6;">${vehicle.driver} <i class="fas fa-external-link-alt" style="font-size: 0.75rem;"></i></div>
+              <div style="font-weight: 600;">${vehicle.driver}</div>
             </div>
             <div class="card" style="padding: 1rem;">
               <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Тип</div>
@@ -571,12 +483,12 @@ class App {
           
           <!-- Recent Fuelings -->
           <div style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">История заправок</h3>
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Последние заправки</h3>
             ${vehicleFuelings.length > 0 ? vehicleFuelings.map(f => `
               <div style="padding: 1rem; background: #1e293b; border-radius: 8px; margin-bottom: 0.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${f.liters} л • ${f.location}</div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${f.liters} л</div>
                     <div style="font-size: 0.875rem; color: #64748b;">${f.date}</div>
                   </div>
                   <div class="badge badge-success">${f.amount.toLocaleString()} ₵</div>
@@ -587,21 +499,17 @@ class App {
           
           <!-- Recent Repairs -->
           <div>
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">История ремонтов</h3>
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Последние ремонты</h3>
             ${vehicleRepairs.length > 0 ? vehicleRepairs.map(r => `
               <div style="padding: 1rem; background: #1e293b; border-radius: 8px; margin-bottom: 0.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
                   <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 0.25rem;">${r.description}</div>
-                    <div style="font-size: 0.875rem; color: #64748b;">${r.date} • ${r.mechanic || 'Механик'}</div>
+                    <div style="font-size: 0.875rem; color: #64748b;">${r.date}</div>
                   </div>
                   <div class="badge badge-danger">${r.totalCost.toLocaleString()} ₵</div>
                 </div>
-                ${r.parts && Array.isArray(r.parts) ? `
-                  <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.5rem;">
-                    ${r.parts.map(p => p.name).join(', ')}
-                  </div>
-                ` : ''}
+                <div style="font-size: 0.875rem; color: #94a3b8;">${r.parts}</div>
               </div>
             `).join('') : '<p style="color: #64748b; text-align: center; padding: 2rem;">Нет данных</p>'}
           </div>
@@ -610,22 +518,6 @@ class App {
     `
     
     document.body.appendChild(modal)
-    
-    // Initialize map after modal is added to DOM
-    setTimeout(() => {
-      if (vehicle.latitude && vehicle.longitude && typeof L !== 'undefined') {
-        const map = L.map(`vehicle-map-${id}`).setView([vehicle.latitude, vehicle.longitude], 13)
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map)
-        
-        L.marker([vehicle.latitude, vehicle.longitude])
-          .addTo(map)
-          .bindPopup(`<b>${vehicle.name}</b><br>${vehicle.plate}<br>${vehicle.location}`)
-          .openPopup()
-      }
-    }, 100)
   }
 
   renderFuelings() {
@@ -1108,518 +1000,6 @@ class App {
     }, 1500)
   }
 
-  showDriverDetails(id) {
-    const driver = this.drivers.find(d => d.id === id)
-    if (!driver) return
-    
-    const modal = document.createElement('div')
-    modal.className = 'modal-overlay'
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove()
-    }
-    
-    modal.innerHTML = `
-      <div class="modal" style="max-width: 900px;">
-        <div class="modal-header">
-          <h2 class="modal-title">Карточка водителя: ${driver.name}</h2>
-          <div class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-            <i class="fas fa-times"></i>
-          </div>
-        </div>
-        
-        <div class="modal-body">
-          <!-- Photos -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото водителя</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.photo}" alt="Driver" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото паспорта</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.passportPhoto}" alt="Passport" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото прав</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.licensePhoto}" alt="License" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-          </div>
-          
-          <!-- Personal Info -->
-          <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Личные данные</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">ФИО</div>
-                <div style="font-weight: 600;">${driver.name}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата рождения</div>
-                <div style="font-weight: 600;">${driver.birthDate}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Телефон</div>
-                <div style="font-weight: 600;">${driver.phone}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Telegram</div>
-                <div style="font-weight: 600;">${driver.telegram}</div>
-              </div>
-              <div style="grid-column: 1 / -1;">
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Адрес</div>
-                <div style="font-weight: 600;">${driver.address}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Passport Info -->
-          <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Паспортные данные</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Серия и номер</div>
-                <div style="font-weight: 600;">${driver.passportSeries} ${driver.passportNumber}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата выдачи</div>
-                <div style="font-weight: 600;">${driver.passportIssueDate}</div>
-              </div>
-              <div style="grid-column: 1 / -1;">
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Кем выдан</div>
-                <div style="font-weight: 600;">${driver.passportIssuer}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Work Info -->
-          <div class="card">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Рабочая информация</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Категория прав</div>
-                <div style="font-weight: 600;">${driver.license}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Опыт работы</div>
-                <div style="font-weight: 600;">${driver.experience}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата приема</div>
-                <div style="font-weight: 600;">${driver.hireDate}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Текущая техника</div>
-                <div style="font-weight: 600; color: #3b82f6;">${driver.currentVehicle}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Статус</div>
-                <div class="badge badge-success">${driver.status === 'active' ? 'Активен' : 'Неактивен'}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-    
-    document.body.appendChild(modal)
-  }
-
-  renderVehicleRequests() {
-    const pending = this.vehiclePurchaseRequests.filter(r => r.status === 'pending')
-    const approved = this.vehiclePurchaseRequests.filter(r => r.status === 'approved')
-    const rejected = this.vehiclePurchaseRequests.filter(r => r.status === 'rejected')
-    
-    return `
-      <div>
-        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Заявки на закуп техники</h1>
-        <p style="color: #64748b; margin-bottom: 2rem;">Управление заявками на приобретение транспортных средств</p>
-        
-        <!-- Pending Requests -->
-        ${pending.length > 0 ? `
-          <div style="margin-bottom: 2rem;">
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #fb923c;">
-              <i class="fas fa-clock"></i>
-              Ожидают одобрения (${pending.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${pending.map(req => this.renderVehicleRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Approved Requests -->
-        ${approved.length > 0 ? `
-          <div style="margin-bottom: 2rem;">
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #22c55e;">
-              <i class="fas fa-check-circle"></i>
-              Одобренные (${approved.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${approved.map(req => this.renderVehicleRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Rejected Requests -->
-        ${rejected.length > 0 ? `
-          <div>
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #64748b;">
-              <i class="fas fa-times-circle"></i>
-              Отклоненные (${rejected.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${rejected.map(req => this.renderVehicleRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-    `
-  }
-
-  renderVehicleRequestCard(req) {
-    const statusColors = {
-      pending: { bg: 'rgba(251, 146, 60, 0.1)', text: '#fb923c', label: 'Ожидает' },
-      approved: { bg: 'rgba(34, 197, 94, 0.1)', text: '#22c55e', label: 'Одобрено' },
-      rejected: { bg: 'rgba(100, 116, 139, 0.1)', text: '#64748b', label: 'Отклонено' }
-    }
-    const status = statusColors[req.status]
-    
-    return `
-      <div class="card">
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-          <div style="width: 56px; height: 56px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
-            <i class="fas fa-truck"></i>
-          </div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem;">${req.brand} ${req.model}</h3>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <div class="badge" style="background: ${status.bg}; color: ${status.text};">${status.label}</div>
-              <div class="badge badge-${req.priority === 'high' ? 'danger' : req.priority === 'medium' ? 'warning' : 'info'}">${req.priority === 'high' ? 'Срочно' : req.priority === 'medium' ? 'Средний' : 'Низкий'}</div>
-            </div>
-          </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Тип</div>
-            <div style="font-weight: 600;">${req.vehicleType}</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Количество</div>
-            <div style="font-weight: 600;">${req.quantity} шт</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Цена за ед.</div>
-            <div style="font-weight: 600;">${req.estimatedPrice.toLocaleString()} ₵</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Общая стоимость</div>
-            <div style="font-weight: 600; color: #ef4444;">${req.totalCost.toLocaleString()} ₵</div>
-          </div>
-        </div>
-        
-        <div style="padding: 1rem; background: #1e293b; border-radius: 8px; margin-bottom: 1rem;">
-          <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem;">Причина</div>
-          <div style="font-weight: 500;">${req.reason}</div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: #94a3b8;">
-          <div><i class="fas fa-user"></i> ${req.requestedBy}</div>
-          <div><i class="fas fa-calendar"></i> ${req.requestDate}</div>
-          <div><i class="fas fa-truck-loading"></i> ${req.expectedDelivery}</div>
-        </div>
-        
-        ${req.notes ? `
-          <div style="padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
-            <i class="fas fa-info-circle" style="color: #3b82f6;"></i> ${req.notes}
-          </div>
-        ` : ''}
-        
-        ${req.status === 'pending' ? `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <button class="btn btn-success" onclick="app.approveVehicleRequest(${req.id})" style="width: 100%;">
-              <i class="fas fa-check"></i> Одобрить
-            </button>
-            <button class="btn btn-danger" onclick="app.rejectVehicleRequest(${req.id})" style="width: 100%;">
-              <i class="fas fa-times"></i> Отклонить
-            </button>
-          </div>
-        ` : ''}
-      </div>
-    `
-  }
-
-  async approveVehicleRequest(id) {
-    try {
-      await axios.post(`/api/vehicle-purchase-requests/${id}/approve`)
-      this.showToast('Заявка одобрена', 'success')
-      await this.loadData()
-    } catch (error) {
-      this.showToast('Ошибка при одобрении', 'error')
-    }
-  }
-
-  async rejectVehicleRequest(id) {
-    try {
-      await axios.post(`/api/vehicle-purchase-requests/${id}/reject`)
-      this.showToast('Заявка отклонена', 'success')
-      await this.loadData()
-    } catch (error) {
-      this.showToast('Ошибка при отклонении', 'error')
-    }
-  }
-
-  renderPartsRequests() {
-    const pending = this.partsRequests.filter(r => r.status === 'pending')
-    const approved = this.partsRequests.filter(r => r.status === 'approved' || r.status === 'ordered')
-    const rejected = this.partsRequests.filter(r => r.status === 'rejected')
-    
-    return `
-      <div>
-        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Заявки на закуп запчастей</h1>
-        <p style="color: #64748b; margin-bottom: 2rem;">Детализация заявок на приобретение запчастей для техники</p>
-        
-        <!-- Pending Requests -->
-        ${pending.length > 0 ? `
-          <div style="margin-bottom: 2rem;">
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #fb923c;">
-              <i class="fas fa-clock"></i>
-              Ожидают одобрения (${pending.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${pending.map(req => this.renderPartsRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Approved/Ordered Requests -->
-        ${approved.length > 0 ? `
-          <div style="margin-bottom: 2rem;">
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #22c55e;">
-              <i class="fas fa-check-circle"></i>
-              Одобренные / В заказе (${approved.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${approved.map(req => this.renderPartsRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Rejected Requests -->
-        ${rejected.length > 0 ? `
-          <div>
-            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #64748b;">
-              <i class="fas fa-times-circle"></i>
-              Отклоненные (${rejected.length})
-            </h2>
-            <div style="display: grid; gap: 1rem;">
-              ${rejected.map(req => this.renderPartsRequestCard(req)).join('')}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-    `
-  }
-
-  renderPartsRequestCard(req) {
-    const statusColors = {
-      pending: { bg: 'rgba(251, 146, 60, 0.1)', text: '#fb923c', label: 'Ожидает' },
-      approved: { bg: 'rgba(34, 197, 94, 0.1)', text: '#22c55e', label: 'Одобрено' },
-      ordered: { bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', label: 'В заказе' },
-      rejected: { bg: 'rgba(100, 116, 139, 0.1)', text: '#64748b', label: 'Отклонено' }
-    }
-    const status = statusColors[req.status]
-    
-    return `
-      <div class="card">
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-          <div style="width: 56px; height: 56px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
-            <i class="fas fa-cog"></i>
-          </div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem;">${req.partName}</h3>
-            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-              <div style="color: #64748b; font-size: 0.875rem;">${req.vehicleName} (${req.vehiclePlate})</div>
-              <div class="badge" style="background: ${status.bg}; color: ${status.text};">${status.label}</div>
-              <div class="badge badge-${req.priority === 'high' ? 'danger' : req.priority === 'medium' ? 'warning' : 'info'}">${req.priority === 'high' ? 'Срочно' : req.priority === 'medium' ? 'Средний' : 'Низкий'}</div>
-            </div>
-          </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Артикул</div>
-            <div style="font-weight: 600; font-family: monospace; font-size: 0.875rem;">${req.partNumber}</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Количество</div>
-            <div style="font-weight: 600;">${req.quantity} ${req.unit}</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Цена за ед.</div>
-            <div style="font-weight: 600;">${req.estimatedPrice.toLocaleString()} ₵</div>
-          </div>
-          <div>
-            <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Общая стоимость</div>
-            <div style="font-weight: 600; color: #ef4444;">${req.totalCost.toLocaleString()} ₵</div>
-          </div>
-        </div>
-        
-        <div style="padding: 1rem; background: #1e293b; border-radius: 8px; margin-bottom: 1rem;">
-          <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem;">Причина</div>
-          <div style="font-weight: 500; margin-bottom: 0.75rem;">${req.reason}</div>
-          <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Поставщик</div>
-          <div style="font-weight: 500;">${req.supplier}</div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: #94a3b8;">
-          <div><i class="fas fa-user-cog"></i> ${req.requestedBy}</div>
-          <div><i class="fas fa-user"></i> Водитель: ${req.driver}</div>
-          <div><i class="fas fa-calendar"></i> ${req.requestDate}</div>
-          <div><i class="fas fa-truck-loading"></i> ${req.expectedDelivery}</div>
-        </div>
-        
-        ${req.notes ? `
-          <div style="padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
-            <i class="fas fa-info-circle" style="color: #3b82f6;"></i> ${req.notes}
-          </div>
-        ` : ''}
-        
-        ${req.status === 'pending' ? `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <button class="btn btn-success" onclick="app.approvePartsRequest(${req.id})" style="width: 100%;">
-              <i class="fas fa-check"></i> Одобрить
-            </button>
-            <button class="btn btn-danger" onclick="app.rejectPartsRequest(${req.id})" style="width: 100%;">
-              <i class="fas fa-times"></i> Отклонить
-            </button>
-          </div>
-        ` : ''}
-      </div>
-    `
-  }
-
-  async approvePartsRequest(id) {
-    try {
-      await axios.post(`/api/parts-requests/${id}/approve`)
-      this.showToast('Заявка одобрена', 'success')
-      await this.loadData()
-    } catch (error) {
-      this.showToast('Ошибка при одобрении', 'error')
-    }
-  }
-
-  async rejectPartsRequest(id) {
-    try {
-      await axios.post(`/api/parts-requests/${id}/reject`)
-      this.showToast('Заявка отклонена', 'success')
-      await this.loadData()
-    } catch (error) {
-      this.showToast('Ошибка при отклонении', 'error')
-    }
-  }
-
-  renderForecast() {
-    if (!this.maintenanceForecast) return '<p>Загрузка...</p>'
-    
-    const forecast = this.maintenanceForecast
-    
-    return `
-      <div>
-        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Прогноз расходов</h1>
-        <p style="color: #64748b; margin-bottom: 2rem;">Приблизительный расчет расходов на запчасти, масло и топливо на месяц вперед</p>
-        
-        <!-- Summary -->
-        ${forecast.summary ? `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-            <div class="stat-card">
-              <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
-                <i class="fas fa-gas-pump"></i>
-              </div>
-              <div class="stat-value">${forecast.summary.totalFuelCost.toLocaleString()} ₵</div>
-              <div class="stat-label">Топливо за месяц</div>
-            </div>
-            
-            <div class="stat-card">
-              <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                <i class="fas fa-wrench"></i>
-              </div>
-              <div class="stat-value">${forecast.summary.totalMaintenanceCost.toLocaleString()} ₵</div>
-              <div class="stat-label">Обслуживание за месяц</div>
-            </div>
-            
-            <div class="stat-card">
-              <div class="stat-icon" style="background: rgba(251, 146, 60, 0.1); color: #fb923c;">
-                <i class="fas fa-calculator"></i>
-              </div>
-              <div class="stat-value">${forecast.summary.grandTotal.toLocaleString()} ₵</div>
-              <div class="stat-label">Общий прогноз</div>
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Per Vehicle Forecast -->
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Прогноз по технике</h2>
-        <div style="display: grid; gap: 1rem;">
-          ${forecast.vehicles.map(v => `
-            <div class="card">
-              <div style="display: flex; gap: 1rem; align-items: start; margin-bottom: 1rem;">
-                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
-                  <i class="fas fa-truck"></i>
-                </div>
-                <div style="flex: 1;">
-                  <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem;">${v.vehicleName}</h3>
-                  <div style="color: #64748b; font-size: 0.875rem;">${v.vehiclePlate}</div>
-                </div>
-                <div style="text-align: right;">
-                  <div style="font-size: 1.5rem; font-weight: 700; color: #fb923c;">${v.estimatedTotalCost.toLocaleString()} ₵</div>
-                  <div style="font-size: 0.75rem; color: #64748b;">в месяц</div>
-                </div>
-              </div>
-              
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; padding-top: 1rem; border-top: 1px solid #1e293b;">
-                <div>
-                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Пробег в месяц</div>
-                  <div style="font-weight: 600;">${v.monthlyKm.toLocaleString()} км</div>
-                </div>
-                <div>
-                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Расход топлива</div>
-                  <div style="font-weight: 600;">${v.fuelConsumption} л/км</div>
-                </div>
-                <div>
-                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Топливо</div>
-                  <div style="font-weight: 600; color: #3b82f6;">${v.estimatedFuelCost.toLocaleString()} ₵</div>
-                </div>
-                <div>
-                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Обслуживание</div>
-                  <div style="font-weight: 600; color: #ef4444;">${v.estimatedMaintenanceCost.toLocaleString()} ₵</div>
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
-          <div style="display: flex; gap: 1rem; align-items: start;">
-            <i class="fas fa-info-circle" style="font-size: 1.5rem; color: #3b82f6; flex-shrink: 0; margin-top: 0.25rem;"></i>
-            <div>
-              <div style="font-weight: 600; margin-bottom: 0.5rem;">О прогнозе</div>
-              <div style="color: #94a3b8; font-size: 0.875rem;">
-                Расчет основан на среднем пробеге техники за месяц, среднем расходе топлива и плановых расходах на обслуживание. 
-                Фактические расходы могут отличаться в зависимости от условий эксплуатации, внеплановых ремонтов и изменения цен на топливо и запчасти.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-  }
-
   render() {
     const app = document.getElementById('app')
     
@@ -1649,9 +1029,7 @@ class App {
       fuelings: this.renderFuelings(),
       repairs: this.renderRepairs(),
       drivers: this.renderDrivers(),
-      'vehicle-requests': this.renderVehicleRequests(),
-      'parts-requests': this.renderPartsRequests(),
-      forecast: this.renderForecast(),
+      notifications: this.renderNotifications(),
       reports: this.renderReports()
     }
     

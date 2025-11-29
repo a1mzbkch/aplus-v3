@@ -595,6 +595,35 @@ body {
   }
 }
 
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+  animation: slideDown 0.2s ease;
+}
+
+.notifications-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-dropdown::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.notifications-dropdown::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   :root {
