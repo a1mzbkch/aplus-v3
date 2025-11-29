@@ -4,6 +4,7 @@
 class App {
   constructor() {
     this.currentPage = 'login'
+    this.currentPageParam = null
     this.isAuthenticated = false
     this.user = null
     this.notifications = []
@@ -91,8 +92,9 @@ class App {
     this.render()
   }
 
-  navigateTo(page) {
+  navigateTo(page, param = null) {
     this.currentPage = page
+    this.currentPageParam = param
     this.render()
   }
 
@@ -551,7 +553,7 @@ class App {
           
           <!-- Info -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="card" style="padding: 1rem; cursor: pointer;" onclick="app.showDriverDetails(${vehicle.driverId})">
+            <div class="card" style="padding: 1rem; cursor: pointer;" onclick="app.navigateTo('driver-detail', ${vehicle.driverId}); this.closest('.modal-overlay').remove();">
               <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Водитель</div>
               <div style="font-weight: 600; color: #3b82f6;">${vehicle.driver} <i class="fas fa-external-link-alt" style="font-size: 0.75rem;"></i></div>
             </div>
@@ -879,62 +881,76 @@ class App {
         
         ${this.driverRequests.length > 0 ? `
           <div style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
               <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; color: #fb923c;"></i>
-              <div>
-                <div style="font-weight: 600; margin-bottom: 0.25rem;">Новые заявки</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">Новые заявки на регистрацию</div>
                 <div style="font-size: 0.875rem; color: #94a3b8;">${this.driverRequests.length} заявок ожидают одобрения</div>
               </div>
+              <button class="btn btn-secondary" onclick="app.navigateTo('driver-requests')">
+                Перейти к заявкам
+                <i class="fas fa-arrow-right"></i>
+              </button>
             </div>
           </div>
         ` : ''}
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
-          ${this.driverRequests.map(request => `
-            <div class="card">
-              <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div style="width: 56px; height: 56px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                  <i class="fas fa-user"></i>
+        <!-- Active Drivers -->
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+          <i class="fas fa-users"></i>
+          Работающие водители (${this.drivers.length})
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+          ${this.drivers.map(driver => `
+            <div class="card" style="cursor: pointer; transition: all 0.2s;" onclick="app.navigateTo('driver-detail', ${driver.id})">
+              <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <!-- Photo -->
+                <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; background: #1e293b; flex-shrink: 0;">
+                  <img src="${driver.photo}" alt="${driver.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27%3E%3Crect fill=%27%231e293b%27 width=%27100%27 height=%27100%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2714%27%3E${driver.name.charAt(0)}%3C/text%3E%3C/svg%3E'" />
                 </div>
-                <div style="flex: 1;">
-                  <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem;">${request.name}</h3>
-                  <div class="badge badge-warning">Ожидает одобрения</div>
-                </div>
-              </div>
-              
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div>
-                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Телефон</div>
-                  <div style="font-size: 0.875rem; font-weight: 500;">${request.phone}</div>
-                </div>
-                <div>
-                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Telegram</div>
-                  <div style="font-size: 0.875rem; font-weight: 500;">${request.telegram}</div>
-                </div>
-                <div>
-                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Опыт</div>
-                  <div style="font-size: 0.875rem; font-weight: 500;">${request.experience}</div>
-                </div>
-                <div>
-                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Категория</div>
-                  <div style="font-size: 0.875rem; font-weight: 500;">${request.license}</div>
+                
+                <div style="flex: 1; min-width: 0;">
+                  <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">${driver.name}</h3>
+                  <div class="badge badge-success" style="margin-bottom: 0.5rem;">
+                    <i class="fas fa-check-circle"></i>
+                    ${driver.status === 'active' ? 'Активен' : 'Неактивен'}
+                  </div>
+                  <div style="font-size: 0.875rem; color: #64748b;">
+                    ${driver.currentVehicle}
+                  </div>
                 </div>
               </div>
               
-              <div style="padding-top: 1rem; border-top: 1px solid #1e293b; margin-bottom: 1rem;">
-                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Дата подачи заявки</div>
-                <div style="font-size: 0.875rem; font-weight: 500;">${request.date}</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding-top: 1rem; border-top: 1px solid #1e293b;">
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">
+                    <i class="fas fa-phone"></i> Телефон
+                  </div>
+                  <div style="font-size: 0.875rem; font-weight: 500;">${driver.phone}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">
+                    <i class="fab fa-telegram"></i> Telegram
+                  </div>
+                  <div style="font-size: 0.875rem; font-weight: 500;">${driver.telegram}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">
+                    <i class="fas fa-id-card"></i> Категория
+                  </div>
+                  <div style="font-size: 0.875rem; font-weight: 500;">${driver.license}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">
+                    <i class="fas fa-briefcase"></i> Стаж
+                  </div>
+                  <div style="font-size: 0.875rem; font-weight: 500;">${driver.experience}</div>
+                </div>
               </div>
               
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <button class="btn btn-success" onclick="app.approveDriver(${request.id})" style="width: 100%;">
-                  <i class="fas fa-check"></i>
-                  Одобрить
-                </button>
-                <button class="btn btn-danger" onclick="app.rejectDriver(${request.id})" style="width: 100%;">
-                  <i class="fas fa-times"></i>
-                  Отклонить
-                </button>
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #1e293b; text-align: center; color: #3b82f6; font-size: 0.875rem; font-weight: 500;">
+                <i class="fas fa-arrow-right"></i> Нажмите для подробностей
               </div>
             </div>
           `).join('')}
@@ -1108,126 +1124,7 @@ class App {
     }, 1500)
   }
 
-  showDriverDetails(id) {
-    const driver = this.drivers.find(d => d.id === id)
-    if (!driver) return
-    
-    const modal = document.createElement('div')
-    modal.className = 'modal-overlay'
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove()
-    }
-    
-    modal.innerHTML = `
-      <div class="modal" style="max-width: 900px;">
-        <div class="modal-header">
-          <h2 class="modal-title">Карточка водителя: ${driver.name}</h2>
-          <div class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-            <i class="fas fa-times"></i>
-          </div>
-        </div>
-        
-        <div class="modal-body">
-          <!-- Photos -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото водителя</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.photo}" alt="Driver" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото паспорта</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.passportPhoto}" alt="Passport" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-            <div>
-              <h4 style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Фото прав</h4>
-              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <img src="${driver.licensePhoto}" alt="License" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27250%27%3E%3Crect fill=%27%231e293b%27 width=%27200%27 height=%27250%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
-              </div>
-            </div>
-          </div>
-          
-          <!-- Personal Info -->
-          <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Личные данные</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">ФИО</div>
-                <div style="font-weight: 600;">${driver.name}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата рождения</div>
-                <div style="font-weight: 600;">${driver.birthDate}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Телефон</div>
-                <div style="font-weight: 600;">${driver.phone}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Telegram</div>
-                <div style="font-weight: 600;">${driver.telegram}</div>
-              </div>
-              <div style="grid-column: 1 / -1;">
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Адрес</div>
-                <div style="font-weight: 600;">${driver.address}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Passport Info -->
-          <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Паспортные данные</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Серия и номер</div>
-                <div style="font-weight: 600;">${driver.passportSeries} ${driver.passportNumber}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата выдачи</div>
-                <div style="font-weight: 600;">${driver.passportIssueDate}</div>
-              </div>
-              <div style="grid-column: 1 / -1;">
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Кем выдан</div>
-                <div style="font-weight: 600;">${driver.passportIssuer}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Work Info -->
-          <div class="card">
-            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Рабочая информация</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Категория прав</div>
-                <div style="font-weight: 600;">${driver.license}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Опыт работы</div>
-                <div style="font-weight: 600;">${driver.experience}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата приема</div>
-                <div style="font-weight: 600;">${driver.hireDate}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Текущая техника</div>
-                <div style="font-weight: 600; color: #3b82f6;">${driver.currentVehicle}</div>
-              </div>
-              <div>
-                <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Статус</div>
-                <div class="badge badge-success">${driver.status === 'active' ? 'Активен' : 'Неактивен'}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-    
-    document.body.appendChild(modal)
-  }
+
 
   renderVehicleRequests() {
     const pending = this.vehiclePurchaseRequests.filter(r => r.status === 'pending')
@@ -1524,6 +1421,239 @@ class App {
     }
   }
 
+  renderDriverRequests() {
+    return `
+      <div>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-secondary" onclick="app.navigateTo('drivers')">
+            <i class="fas fa-arrow-left"></i>
+            Назад к водителям
+          </button>
+          <div style="flex: 1;">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">Заявки на регистрацию</h1>
+            <p style="color: #64748b;">Новые водители ожидают одобрения</p>
+          </div>
+        </div>
+        
+        ${this.driverRequests.length === 0 ? `
+          <div style="text-align: center; padding: 4rem 2rem; color: #64748b;">
+            <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p style="font-size: 1.125rem;">Нет новых заявок</p>
+          </div>
+        ` : `
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+            ${this.driverRequests.map(request => `
+              <div class="card">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                  <div style="width: 56px; height: 56px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div style="flex: 1;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem;">${request.name}</h3>
+                    <div class="badge badge-warning">Ожидает одобрения</div>
+                  </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Телефон</div>
+                    <div style="font-size: 0.875rem; font-weight: 500;">${request.phone}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Telegram</div>
+                    <div style="font-size: 0.875rem; font-weight: 500;">${request.telegram}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Опыт</div>
+                    <div style="font-size: 0.875rem; font-weight: 500;">${request.experience}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Категория</div>
+                    <div style="font-size: 0.875rem; font-weight: 500;">${request.license}</div>
+                  </div>
+                </div>
+                
+                <div style="padding-top: 1rem; border-top: 1px solid #1e293b; margin-bottom: 1rem;">
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Дата подачи заявки</div>
+                  <div style="font-size: 0.875rem; font-weight: 500;">${request.date}</div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <button class="btn btn-success" onclick="app.approveDriver(${request.id})" style="width: 100%;">
+                    <i class="fas fa-check"></i>
+                    Одобрить
+                  </button>
+                  <button class="btn btn-danger" onclick="app.rejectDriver(${request.id})" style="width: 100%;">
+                    <i class="fas fa-times"></i>
+                    Отклонить
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `
+  }
+
+  renderDriverDetail(driverId) {
+    const driver = this.drivers.find(d => d.id === driverId)
+    if (!driver) {
+      return `
+        <div style="text-align: center; padding: 4rem 2rem;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #fb923c; margin-bottom: 1rem;"></i>
+          <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Водитель не найден</h2>
+          <button class="btn btn-primary" onclick="app.navigateTo('drivers')">
+            Вернуться к списку водителей
+          </button>
+        </div>
+      `
+    }
+    
+    return `
+      <div>
+        <!-- Header with back button -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-secondary" onclick="app.navigateTo('drivers')">
+            <i class="fas fa-arrow-left"></i>
+            Назад
+          </button>
+          <div style="flex: 1;">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">${driver.name}</h1>
+            <p style="color: #64748b;">Детальная информация о водителе</p>
+          </div>
+          <div class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1rem;">
+            <i class="fas fa-check-circle"></i>
+            ${driver.status === 'active' ? 'Активен' : 'Неактивен'}
+          </div>
+        </div>
+        
+        <!-- Photos Section -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-images"></i>
+            Фотографии документов
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <!-- Driver Photo -->
+            <div>
+              <h3 style="font-size: 0.875rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-user"></i> Фото водителя
+              </h3>
+              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 12px; overflow: hidden; border: 2px solid #334155;">
+                <img src="${driver.photo}" alt="Driver Photo" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27400%27%3E%3Crect fill=%27%231e293b%27 width=%27300%27 height=%27400%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2720%27%3ENo Photo%3C/text%3E%3C/svg%3E'" />
+              </div>
+            </div>
+            
+            <!-- Passport Photo -->
+            <div>
+              <h3 style="font-size: 0.875rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-passport"></i> Паспорт
+              </h3>
+              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 12px; overflow: hidden; border: 2px solid #334155;">
+                <img src="${driver.passportPhoto}" alt="Passport" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27400%27%3E%3Crect fill=%27%231e293b%27 width=%27300%27 height=%27400%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2716%27%3ENo Passport%3C/text%3E%3C/svg%3E'" />
+              </div>
+            </div>
+            
+            <!-- License Photo -->
+            <div>
+              <h3 style="font-size: 0.875rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-id-card"></i> Водительское удостоверение
+              </h3>
+              <div style="aspect-ratio: 3/4; background: #1e293b; border-radius: 12px; overflow: hidden; border: 2px solid #334155;">
+                <img src="${driver.licensePhoto}" alt="License" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27400%27%3E%3Crect fill=%27%231e293b%27 width=%27300%27 height=%27400%27/%3E%3Ctext fill=%27%2364748b%27 x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2716%27%3ENo License%3C/text%3E%3C/svg%3E'" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Personal Information -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-user-circle"></i>
+            Личная информация
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">ФИО</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.name}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Дата рождения</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.birthDate}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                <i class="fas fa-phone"></i> Телефон
+              </div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: #3b82f6;">${driver.phone}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                <i class="fab fa-telegram"></i> Telegram
+              </div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: #3b82f6;">${driver.telegram}</div>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                <i class="fas fa-map-marker-alt"></i> Адрес
+              </div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.address}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Passport Data -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-passport"></i>
+            Паспортные данные
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Серия и номер паспорта</div>
+              <div style="font-size: 1.125rem; font-weight: 600; font-family: monospace;">${driver.passportSeries} ${driver.passportNumber}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Дата выдачи</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.passportIssueDate}</div>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Кем выдан</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.passportIssuer}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Work Information -->
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+            <i class="fas fa-briefcase"></i>
+            Рабочая информация
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Категория прав</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.license}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Стаж работы</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.experience}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Дата приема на работу</div>
+              <div style="font-size: 1.125rem; font-weight: 600;">${driver.hireDate}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Текущая техника</div>
+              <div style="font-size: 1.125rem; font-weight: 600; color: #3b82f6;">${driver.currentVehicle}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
   renderForecast() {
     if (!this.maintenanceForecast) return '<p>Загрузка...</p>'
     
@@ -1643,23 +1773,30 @@ class App {
     }
     
     // Main app layout
-    const pages = {
-      dashboard: this.renderDashboard(),
-      vehicles: this.renderVehicles(),
-      fuelings: this.renderFuelings(),
-      repairs: this.renderRepairs(),
-      drivers: this.renderDrivers(),
-      'vehicle-requests': this.renderVehicleRequests(),
-      'parts-requests': this.renderPartsRequests(),
-      forecast: this.renderForecast(),
-      reports: this.renderReports()
+    let pageContent
+    if (this.currentPage === 'driver-detail' && this.currentPageParam) {
+      pageContent = this.renderDriverDetail(this.currentPageParam)
+    } else {
+      const pages = {
+        dashboard: this.renderDashboard(),
+        vehicles: this.renderVehicles(),
+        fuelings: this.renderFuelings(),
+        repairs: this.renderRepairs(),
+        drivers: this.renderDrivers(),
+        'driver-requests': this.renderDriverRequests(),
+        'vehicle-requests': this.renderVehicleRequests(),
+        'parts-requests': this.renderPartsRequests(),
+        forecast: this.renderForecast(),
+        reports: this.renderReports()
+      }
+      pageContent = pages[this.currentPage] || pages.dashboard
     }
     
     app.innerHTML = `
       ${this.renderSidebar()}
       ${this.renderTopbar()}
       <div class="main-content">
-        ${pages[this.currentPage] || pages.dashboard}
+        ${pageContent}
       </div>
     `
   }
