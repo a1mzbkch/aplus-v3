@@ -677,6 +677,97 @@ const mockNotifications = [
   }
 ]
 
+const mockGeozones = [
+  {
+    id: 1,
+    name: 'Объект №1 - Жилой комплекс',
+    description: 'Строительство жилого комплекса на ул. Ахунбаева',
+    address: 'г. Бишкек, ул. Ахунбаева',
+    status: 'active',
+    area: 15000, // м²
+    vehicleCount: 1,
+    vehicleIds: [3], // Caterpillar 320
+    coordinates: [
+      [42.8815, 74.6090],
+      [42.8825, 74.6090],
+      [42.8825, 74.6110],
+      [42.8815, 74.6110],
+      [42.8815, 74.6090]
+    ],
+    center: [42.8820, 74.6100],
+    startDate: '2025-01-10',
+    estimatedEndDate: '2025-12-31',
+    contractor: 'ОсОО "СтройМастер"',
+    projectManager: 'Иванов А.С.'
+  },
+  {
+    id: 2,
+    name: 'Объект №3 - Торговый центр',
+    description: 'Строительство торгового центра на проспекте Манаса',
+    address: 'г. Бишкек, пр. Манаса',
+    status: 'active',
+    area: 25000, // м²
+    vehicleCount: 1,
+    vehicleIds: [2], // Камаз 6520
+    coordinates: [
+      [42.8640, 74.5890],
+      [42.8660, 74.5890],
+      [42.8660, 74.5910],
+      [42.8640, 74.5910],
+      [42.8640, 74.5890]
+    ],
+    center: [42.8650, 74.5900],
+    startDate: '2024-06-15',
+    estimatedEndDate: '2026-03-20',
+    contractor: 'ОсОО "МегаСтрой"',
+    projectManager: 'Петров В.И.'
+  },
+  {
+    id: 3,
+    name: 'Объект №5 - Дорожное строительство',
+    description: 'Реконструкция дорожного полотна на Южной магистрали',
+    address: 'г. Бишкек, Южная магистраль',
+    status: 'active',
+    area: 45000, // м²
+    vehicleCount: 1,
+    vehicleIds: [1], // HOWO 165
+    coordinates: [
+      [42.8736, 74.5688],
+      [42.8756, 74.5688],
+      [42.8756, 74.5708],
+      [42.8736, 74.5708],
+      [42.8736, 74.5688]
+    ],
+    center: [42.8746, 74.5698],
+    startDate: '2025-03-01',
+    estimatedEndDate: '2025-11-30',
+    contractor: 'ОсОО "ДорСтрой"',
+    projectManager: 'Сидоров К.П.'
+  },
+  {
+    id: 4,
+    name: 'Объект №7 - Новый район (планируется)',
+    description: 'Подготовка к строительству нового жилого района',
+    address: 'г. Бишкек, мкр. Асанбай',
+    status: 'planned',
+    area: 80000, // м²
+    vehicleCount: 0,
+    vehicleIds: [],
+    coordinates: [
+      [42.8900, 74.6200],
+      [42.8950, 74.6200],
+      [42.8950, 74.6280],
+      [42.8900, 74.6280],
+      [42.8900, 74.6200]
+    ],
+    center: [42.8925, 74.6240],
+    startDate: '2026-01-15',
+    estimatedEndDate: '2028-12-31',
+    contractor: 'ТБА',
+    projectManager: 'ТБА'
+  }
+]
+
 // API Routes
 app.get('/api/vehicles', (c) => {
   return c.json(mockVehicles)
@@ -948,6 +1039,26 @@ app.get('/api/maintenance-forecast', (c) => {
       totalMaintenanceCost,
       grandTotal
     }
+  })
+})
+
+app.get('/api/geozones', (c) => {
+  return c.json(mockGeozones)
+})
+
+app.get('/api/geozones/:id', (c) => {
+  const id = parseInt(c.req.param('id'))
+  const geozone = mockGeozones.find(g => g.id === id)
+  if (!geozone) {
+    return c.json({ error: 'Geozone not found' }, 404)
+  }
+  
+  // Получаем технику работающую в геозоне
+  const vehicles = mockVehicles.filter(v => geozone.vehicleIds.includes(v.id))
+  
+  return c.json({
+    ...geozone,
+    vehicles
   })
 })
 

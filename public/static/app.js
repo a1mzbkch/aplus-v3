@@ -17,6 +17,7 @@ class App {
     this.partsRequests = []
     this.maintenanceForecast = null
     this.currency = null
+    this.geozones = []
     
     this.init()
   }
@@ -37,7 +38,7 @@ class App {
 
   async loadData() {
     try {
-      const [vehicles, fuelings, repairs, driverRequests, drivers, vehiclePurchaseRequests, partsRequests, notifications, maintenanceForecast, currency] = await Promise.all([
+      const [vehicles, fuelings, repairs, driverRequests, drivers, vehiclePurchaseRequests, partsRequests, notifications, maintenanceForecast, currency, geozones] = await Promise.all([
         axios.get('/api/vehicles'),
         axios.get('/api/fuelings'),
         axios.get('/api/repairs'),
@@ -47,7 +48,8 @@ class App {
         axios.get('/api/parts-requests'),
         axios.get('/api/notifications'),
         axios.get('/api/maintenance-forecast'),
-        axios.get('/api/currency')
+        axios.get('/api/currency'),
+        axios.get('/api/geozones')
       ])
       
       this.vehicles = vehicles.data
@@ -60,6 +62,7 @@ class App {
       this.notifications = notifications.data
       this.maintenanceForecast = maintenanceForecast.data
       this.currency = currency.data
+      this.geozones = geozones.data
       
       this.render()
     } catch (error) {
@@ -200,6 +203,7 @@ class App {
     const menuItems = [
       { id: 'dashboard', icon: 'fa-home', label: 'Dashboard' },
       { id: 'vehicles', icon: 'fa-truck', label: 'Техника' },
+      { id: 'geozones', icon: 'fa-map-marked-alt', label: 'Геозоны' },
       { id: 'fuelings', icon: 'fa-gas-pump', label: 'Заправки' },
       { id: 'repairs', icon: 'fa-wrench', label: 'Ремонты' },
       { id: 'drivers', icon: 'fa-users', label: 'Водители' },
@@ -2167,10 +2171,13 @@ class App {
       pageContent = this.renderDriverDetail(this.currentPageParam)
     } else if (this.currentPage === 'vehicle-detail' && this.currentPageParam) {
       pageContent = this.renderVehicleDetail(this.currentPageParam)
+    } else if (this.currentPage === 'geozone-detail' && this.currentPageParam) {
+      pageContent = this.renderGeozoneDetail(this.currentPageParam)
     } else {
       const pages = {
         dashboard: this.renderDashboard(),
         vehicles: this.renderVehicles(),
+        geozones: this.renderGeozones(),
         fuelings: this.renderFuelings(),
         repairs: this.renderRepairs(),
         drivers: this.renderDrivers(),
@@ -2191,9 +2198,11 @@ class App {
       </div>
     `
     
-    // Инициализируем карту после рендеринга (если на странице vehicle-detail)
+    // Инициализируем карту после рендеринга
     if (this.currentPage === 'vehicle-detail' && this.currentPageParam) {
       setTimeout(() => this.initVehicleMap(this.currentPageParam), 100)
+    } else if (this.currentPage === 'geozone-detail' && this.currentPageParam) {
+      setTimeout(() => this.initGeozoneMap(this.currentPageParam), 100)
     }
   }
   
@@ -2245,6 +2254,288 @@ class App {
         </div>
       `)
       .openPopup()
+  }
+
+  renderGeozones() {
+    return `
+      <div>
+        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Геозоны</h1>
+        <p style="color: #64748b; margin-bottom: 2rem;">Объекты и рабочие зоны</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+          ${this.geozones.map(geozone => `
+            <div class="card" style="cursor: pointer; transition: all 0.3s;" onclick="app.navigateTo('geozone-detail', ${geozone.id})"
+                 onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.3)'"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+              <div style="display: flex; align-items: start; gap: 1rem; margin-bottom: 1rem;">
+                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, ${geozone.status === 'active' ? '#10b981, #059669' : '#64748b, #475569'}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                  <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <div style="flex: 1;">
+                  <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">${geozone.name}</h3>
+                  <div style="color: #64748b; font-size: 0.875rem;">${geozone.address}</div>
+                </div>
+                <span class="badge ${geozone.status === 'active' ? 'badge-success' : 'badge-secondary'}">
+                  ${geozone.status === 'active' ? 'Активна' : 'Планируется'}
+                </span>
+              </div>
+              
+              <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
+                ${geozone.description}
+              </p>
+              
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding-top: 1rem; border-top: 1px solid #1e293b;">
+                <div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Площадь</div>
+                  <div style="font-weight: 600;">${(geozone.area / 1000).toFixed(1)} га</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Техника</div>
+                  <div style="font-weight: 600; color: ${geozone.vehicleCount > 0 ? '#3b82f6' : '#64748b'};">
+                    ${geozone.vehicleCount} ед.
+                  </div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Подрядчик</div>
+                  <div style="font-weight: 600; font-size: 0.875rem;">${geozone.contractor}</div>
+                </div>
+              </div>
+              
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #1e293b; font-size: 0.875rem; color: #64748b;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span><i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i>Начало: ${geozone.startDate}</span>
+                  <span>Завершение: ${geozone.estimatedEndDate}</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `
+  }
+
+  renderGeozoneDetail(geozoneId) {
+    const geozone = this.geozones.find(g => g.id === parseInt(geozoneId))
+    if (!geozone) {
+      return '<div class="card"><p>Геозона не найдена</p></div>'
+    }
+
+    // Получаем технику работающую в геозоне
+    const vehicles = this.vehicles.filter(v => geozone.vehicleIds.includes(v.id))
+    
+    return `
+      <div>
+        <!-- Навигация назад -->
+        <div style="margin-bottom: 2rem;">
+          <button class="btn btn-secondary" onclick="app.navigateTo('geozones')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-arrow-left"></i>
+            Назад к геозонам
+          </button>
+        </div>
+
+        <!-- Заголовок -->
+        <div style="margin-bottom: 2rem;">
+          <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 1rem;">
+            <div>
+              <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">${geozone.name}</h1>
+              <p style="color: #64748b;">${geozone.address}</p>
+            </div>
+            <span class="badge ${geozone.status === 'active' ? 'badge-success' : 'badge-secondary'}" style="font-size: 1rem; padding: 0.5rem 1rem;">
+              ${geozone.status === 'active' ? 'Активна' : 'Планируется'}
+            </span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <!-- Карта с геозоной -->
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 1rem;">
+              <i class="fas fa-map"></i>
+              Карта геозоны
+            </h3>
+            <div id="geozone-map-${geozone.id}" style="height: 500px; border-radius: 8px; overflow: hidden; background: #1e293b;">
+              <!-- Карта будет инициализирована через Leaflet -->
+            </div>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; font-size: 0.875rem;">
+              <i class="fas fa-info-circle" style="color: #10b981; margin-right: 0.5rem;"></i>
+              <span style="color: #94a3b8;">Зеленая область показывает границы геозоны. Техника отображается иконками внутри зоны.</span>
+            </div>
+          </div>
+
+          <!-- Информация о геозоне -->
+          <div>
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h3 class="card-title" style="margin-bottom: 1rem;">
+                <i class="fas fa-info-circle"></i>
+                Информация о проекте
+              </h3>
+              <div style="display: grid; gap: 1rem;">
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Описание</div>
+                  <div style="font-weight: 600;">${geozone.description}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Площадь</div>
+                  <div style="font-weight: 600;">${(geozone.area / 1000).toFixed(1)} га (${geozone.area.toLocaleString()} м²)</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Дата начала</div>
+                  <div style="font-weight: 600;">${geozone.startDate}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Плановое завершение</div>
+                  <div style="font-weight: 600;">${geozone.estimatedEndDate}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Подрядчик</div>
+                  <div style="font-weight: 600;">${geozone.contractor}</div>
+                </div>
+                <div>
+                  <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem;">Менеджер проекта</div>
+                  <div style="font-weight: 600;">${geozone.projectManager}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Техника на геозоне -->
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 1.5rem;">
+            <i class="fas fa-truck"></i>
+            Техника на объекте (${vehicles.length})
+          </h3>
+          
+          ${vehicles.length > 0 ? `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+              ${vehicles.map(vehicle => `
+                <div class="card" style="cursor: pointer; background: #1e293b;" onclick="app.navigateTo('vehicle-detail', ${vehicle.id})">
+                  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+                      <i class="fas fa-truck"></i>
+                    </div>
+                    <div style="flex: 1;">
+                      <div style="font-weight: 700; font-size: 1.125rem; margin-bottom: 0.25rem;">${vehicle.name}</div>
+                      <div style="color: #64748b; font-size: 0.875rem;">${vehicle.plate} • ${vehicle.type}</div>
+                    </div>
+                  </div>
+                  
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #0f172a;">
+                    <div>
+                      <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Водитель</div>
+                      <div style="font-weight: 600; font-size: 0.875rem;">${vehicle.driver}</div>
+                    </div>
+                    <div>
+                      <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Топливо</div>
+                      <div class="badge ${vehicle.fuelLevel < 30 ? 'badge-danger' : vehicle.fuelLevel < 50 ? 'badge-warning' : 'badge-success'}">
+                        <i class="fas fa-gas-pump"></i>
+                        ${vehicle.fuelLevel}%
+                      </div>
+                    </div>
+                    <div>
+                      <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Статус</div>
+                      <div class="badge ${vehicle.status === 'active' ? 'badge-success' : 'badge-warning'}">
+                        ${vehicle.status === 'active' ? 'Активна' : 'Требуется внимание'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 0.25rem;">Пробег</div>
+                      <div style="font-weight: 600; font-size: 0.875rem;">${vehicle.mileage.toLocaleString()} км</div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div style="padding: 3rem; text-align: center; color: #64748b;">
+              <i class="fas fa-truck" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+              <div style="font-size: 1.125rem;">На данный момент техника на этом объекте не работает</div>
+            </div>
+          `}
+        </div>
+      </div>
+    `
+  }
+
+  initGeozoneMap(geozoneId) {
+    const geozone = this.geozones.find(g => g.id === parseInt(geozoneId))
+    if (!geozone) return
+    
+    const mapElement = document.getElementById(`geozone-map-${geozone.id}`)
+    if (!mapElement || !window.L) return
+    
+    // Создаем карту
+    const map = L.map(`geozone-map-${geozone.id}`).setView(geozone.center, 14)
+    
+    // Добавляем слой OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map)
+    
+    // Создаем полигон геозоны
+    const polygon = L.polygon(geozone.coordinates, {
+      color: '#10b981',
+      fillColor: '#10b981',
+      fillOpacity: 0.2,
+      weight: 3
+    }).addTo(map)
+    
+    // Добавляем popup к полигону
+    polygon.bindPopup(`
+      <div style="padding: 0.5rem; min-width: 200px;">
+        <div style="font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; color: #0f172a;">
+          ${geozone.name}
+        </div>
+        <div style="color: #64748b; margin-bottom: 0.25rem;">
+          <strong>Площадь:</strong> ${(geozone.area / 1000).toFixed(1)} га
+        </div>
+        <div style="color: #64748b; margin-bottom: 0.25rem;">
+          <strong>Техника:</strong> ${geozone.vehicleCount} ед.
+        </div>
+        <div style="color: #64748b;">
+          <strong>Подрядчик:</strong> ${geozone.contractor}
+        </div>
+      </div>
+    `)
+    
+    // Добавляем маркеры техники
+    const vehicles = this.vehicles.filter(v => geozone.vehicleIds.includes(v.id))
+    vehicles.forEach(vehicle => {
+      const truckIcon = L.divIcon({
+        html: `<div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fas fa-truck"></i></div>`,
+        className: 'custom-div-icon',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      })
+      
+      L.marker([vehicle.latitude, vehicle.longitude], { icon: truckIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="padding: 0.5rem; min-width: 200px;">
+            <div style="font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; color: #0f172a;">
+              ${vehicle.name}
+            </div>
+            <div style="color: #64748b; margin-bottom: 0.25rem;">
+              <strong>Гос. номер:</strong> ${vehicle.plate}
+            </div>
+            <div style="color: #64748b; margin-bottom: 0.25rem;">
+              <strong>Водитель:</strong> ${vehicle.driver}
+            </div>
+            <div style="color: #64748b; margin-bottom: 0.25rem;">
+              <strong>Топливо:</strong> ${vehicle.fuelLevel}%
+            </div>
+            <div style="margin-top: 0.5rem;">
+              <button class="btn btn-primary btn-sm" onclick="app.navigateTo('vehicle-detail', ${vehicle.id}); document.querySelector('.leaflet-popup-close-button').click()">
+                Подробнее
+              </button>
+            </div>
+          </div>
+        `)
+    })
+    
+    // Подгоняем карту под полигон
+    map.fitBounds(polygon.getBounds(), { padding: [50, 50] })
   }
 }
 
