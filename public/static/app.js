@@ -2125,22 +2125,22 @@ class App {
     
     // Создаем CSV данные
     let csvContent = "data:text/csv;charset=utf-8,"
-    csvContent += "Дата,Описание,Запчасти,Стоимость запчастей,Работа,Итого,Статус,Механик\\n"
+    csvContent += "Дата,Описание,Запчасти,Стоимость запчастей,Работа,Итого,Статус,Механик\n"
     
     vehicleRepairs.forEach(repair => {
-      const parts = repair.parts.map(p => \`\${p.name} (\${p.quantity} \${p.unit})\`).join('; ')
-      csvContent += \`\${repair.date},"\${repair.description}","\${parts}",\${repair.partsCost},\${repair.laborCost},\${repair.totalCost},\${repair.status},\${repair.mechanic}\\n\`
+      const parts = repair.parts.map(p => `${p.name} (${p.quantity} ${p.unit})`).join('; ')
+      csvContent += `${repair.date},"${repair.description}","${parts}",${repair.partsCost},${repair.laborCost},${repair.totalCost},${repair.status},${repair.mechanic}\n`
     })
     
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement("a")
     link.setAttribute("href", encodedUri)
-    link.setAttribute("download", \`\${vehicle.name}_\${vehicle.plate}_repairs.csv\`)
+    link.setAttribute("download", `${vehicle.name}_${vehicle.plate}_repairs.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     
-    this.showToast(\`История ремонтов экспортирована: \${vehicle.name}\`, 'success')
+    this.showToast(`История ремонтов экспортирована: ${vehicle.name}`, 'success')
   }
 
   render() {
